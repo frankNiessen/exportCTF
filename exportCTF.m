@@ -12,10 +12,12 @@ function exportCTF(ebsd,fName,varargin)
 %                                  import of microscopy parameters
 %           "'flip',[0|1]"       - Flag 0 or 1 for rotating ebsd spatial data
 %                                  (not the orientation data) 180° (default: 0)
-
+% ************************************************************************
 % Dr. Frank Niessen, University of Wollongong, Australia, 2019
-% contactnospam@fniessen.com (remove the nospam to make this email address 
-% work)
+% contactnospam@fniessen.com (remove the nospam to make this email address work)
+% Acknowledgements go to Dr. Azdiar A. Gazder, University of Wollongong, Australia
+% Version 1.0 - Published 18/04/2019
+% ************************************************************************
 scrPrnt('SegmentStart','Exporting ''ctf'' file');
 %% Varargin
 round0Thrsh = 1e-6;                                                        %Initialize threshold for rounding negative close to 0 x and y coordinates
