@@ -143,15 +143,10 @@ A(:,11) = ebsd.prop.bs;                                                    %Band
 A = A(idx,:);                                                              %Assign this convention to all data
 %% Write data array
 scrPrnt('Step','Writing data array to ''ctf'' file');
-outputCnt = 100;                                                           %Nr of screen output updates
-k = 0;                                                                     %Counter
-for i = 1:size(A,1) %Loop over all data points
-   if ~mod(i,round(size(A,1)/outputCnt)) %Update screen very 'outputCnt'th iteration
-        k = k+1;
-        scrPrnt('SubStep',sprintf('%.0f/%.0f data lines written - %.0f percent',i,size(A,1),k));
-   end
-   fprintf(filePh,'%.0f\t%.4f\t%.4f\t%.0f\t%.0f\t%.4f\t%.4f\t%.4f\t%.4f\t%.0f\t%.0f\r\n',A(i,1),A(i,2),A(i,3),A(i,4),A(i,5),A(i,6),A(i,7),A(i,8),A(i,9),A(i,10),A(i,11)); %Write data line
-end
+% Matlab is column major so transpose to write rows.
+A = A.';
+fprintf(filePh,'%.0f\t%.4f\t%.4f\t%.0f\t%.0f\t%.4f\t%.4f\t%.4f\t%.4f\t%.0f\t%.0f\r\n',A); %Write data line
+
 %% Close ctf file
 scrPrnt('Step','Closing file');
 fclose(filePh);                                                            %Close file after writing 
