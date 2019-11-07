@@ -12,7 +12,7 @@ function exportCTF(ebsd,fName,varargin)
 %                                  import of microscopy parameters
 %           "'flipud',[0|1]"     - Flag 0 or 1 for flipping ebsd spatial
 %                                  upside down (default: 0)
-%           "'flipud',[0|1]"     - Flag 0 or 1 for flipping ebsd spatial
+%           "'fliplr',[0|1]"     - Flag 0 or 1 for flipping ebsd spatial
 %                                  left right (default: 0)
 % ************************************************************************
 % Dr. Frank Niessen, University of Wollongong, Australia, 2019
