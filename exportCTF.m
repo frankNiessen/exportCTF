@@ -22,17 +22,29 @@ scrPrnt('SegmentStart','Exporting ''ctf'' file');
 %% Varargin
 round0Thrsh = 1e-6;                                                        %Initialize threshold for rounding negative close to 0 x and y coordinates
 params = [];                                                               %Initialize as empty
-flip = 0;                                                                  %No rotation
+flip.ud = 0;                                                               %No flipping upside down
+flip.lr = 0;                                                               %No flipping left right
 for argidx = 2:2:(nargin + nargin(mfilename)+1) %Scan Varargin parameters
    switch varargin{argidx-1}
        case 'params'
             params = varargin{argidx};
-       case 'flip'
-            flip = varargin{argidx};
+       case 'flipud'
+            flip.ud = varargin{argidx};
+       case 'fliplr'
+            flip.lr = varargin{argidx};
    end
 end
 %% Pre-processing
 scrPrnt('Step','Collecting data');
+if flip.ud %Flip spatial ebsd data upside down
+    ebsd = flipud(ebsd);                                                   %Flipping ebsd data upside down
+    scrPrnt('Step','Flipping EBSD spatial data upside down');
+end
+if flip.lr %Flip spatial ebsd data left right
+    ebsd = fliplr(ebsd);                                                   %Flipping ebsd data left right
+    scrPrnt('Step','Flipping EBSD spatial data left right');
+end
+
 ebsdGrid = ebsd.gridify;                                                   %Get gridified version of ebsd map
 Laue = {'-1','2/m','mmm','4/m','4/mmm',...
         '-3','-3m','6/m','6/mmm','m3','m3m'};                              %11 Laue Groups
@@ -121,34 +133,72 @@ end
 scrPrnt('Step','Assembling data array');
 % *** Write Data header
 fprintf(filePh,'Phase\tX\tY\tBands\tError\tEuler1\tEuler2\tEuler3\tMAD\tBC\tBS\r\n'); %Data header
-if flip %Flip spatial ebsd data
-    ebsd = rotate(ebsd,180*degree,'keepEuler');                            %Rotate 180
-    scrPrnt('Step','Rotating EBSD spatial data 180°');
+
+%Get data order x
+if ebsdGrid.x(1,1)< ebsdGrid.x(1,2)
+   dim.x = 2;  
+elseif ebsdGrid.x(1,1)> ebsdGrid.x(1,2)
+   dim.x = -2;  
+elseif ebsdGrid.x(1,1)< ebsdGrid.x(2,1)
+   dim.x = 1; 
+elseif ebsdGrid.x(1,1)> ebsdGrid.x(2,1)
+   dim.x = -1;  
 end
-A(:,1) = ebsd.phase;                                                       %Phase
-A(:,2) = ebsd.x;                                                           %X coordinates
-A(:,3) = ebsd.y;                                                           %Y coordinates
+%Get data order y
+if ebsdGrid.y(1,1)< ebsdGrid.y(1,2)
+   dim.y = 2;  
+elseif ebsdGrid.y(1,1)> ebsdGrid.y(1,2)
+   dim.y = -2;  
+elseif ebsdGrid.y(1,1)< ebsdGrid.y(2,1)
+   dim.y = 1; 
+elseif ebsdGrid.y(1,1)> ebsdGrid.y(2,1)
+   dim.y = -1;  
+end
+%Gather data
+flds{1} = ebsdGrid.phase;
+flds{2} = ebsdGrid.x;
+flds{3} = ebsdGrid.y;
+flds{4} = ebsdGrid.prop.bands;
+flds{5} = ebsdGrid.prop.error;
+flds{6} = ebsdGrid.rotations.phi1/degree;
+flds{7} = ebsdGrid.rotations.Phi/degree;
+flds{8} = ebsdGrid.rotations.phi2/degree;
+flds{9} = ebsdGrid.prop.mad;
+flds{10} = ebsdGrid.prop.bc;
+flds{11} = ebsdGrid.prop.bs;
+
+%Write data
+A = zeros(ebsdGrid.length,11); %initialize
+for i = 1:length(flds)
+    temp = flds{i};
+    %Transpose matrices if required
+    if abs(dim.x == 2) && abs(dim.y) == 1
+        temp = temp';
+    end
+    %Flip matrices if required
+    if dim.x < 0
+       temp = temp(end:-1:1,:);
+    end
+    if dim.y < 0
+       temp = temp(end:-1:1,:);
+    end
+    %Make vector
+    A(:,i) = reshape(temp,ebsdGrid.length,1);    
+end    
+  
 A(find(all([A(:,2)>-round0Thrsh,A(:,2)<round0Thrsh],2)),2) = 0;            %Rounding close to 0 X coordinates
 A(find(all([A(:,3)>-round0Thrsh,A(:,3)<round0Thrsh],2)),3) = 0;            %Rounding close to 0 Y coordinates
-A(:,4) = ebsd.prop.bands;                                                  %Nr of bands 
-A(:,5) = ebsd.prop.error;                                                  %Error 
-A(:,6) = ebsd.rotations.phi1/degree;                                       %Euler phi1 [°]
-A(:,7) = ebsd.rotations.Phi/degree;                                        %Euler Phi [°] 
-A(:,8) = ebsd.rotations.phi2/degree;                                       %Euler phi2 [°]
-A(:,9) = ebsd.prop.mad;                                                    %Mean angular deviation
-A(:,10) = ebsd.prop.bc;                                                    %Band contrast
-A(:,11) = ebsd.prop.bs;                                                    %Band slope
-%% Change X/Y order
-[~,idx] = sort(A(:,3));                                                    %Make x-coordinates increase first
-A = A(idx,:);                                                              %Assign this convention to all data
+A(isnan(A)) = 0;                                                           %Set NaN to 0
+A(:,2) =  A(:,2) - A(1,2);                                                 %Set first x-value to 0
+A(:,3) =  A(:,3) - A(1,3);                                                 %Set first y-value to 0
 %% Write data array
 scrPrnt('Step','Writing data array to ''ctf'' file');
-outputCnt = 100;                                                           %Nr of screen output updates
+outputCnt = 10;                                                            %Nr of screen output updates
 k = 0;                                                                     %Counter
 for i = 1:size(A,1) %Loop over all data points
    if ~mod(i,round(size(A,1)/outputCnt)) %Update screen very 'outputCnt'th iteration
         k = k+1;
-        scrPrnt('SubStep',sprintf('%.0f/%.0f data lines written - %.0f percent',i,size(A,1),k));
+        scrPrnt('SubStep',sprintf('%.0f/%.0f data lines written - %.0f percent',i,size(A,1),k*outputCnt));
    end
    fprintf(filePh,'%.0f\t%.4f\t%.4f\t%.0f\t%.0f\t%.4f\t%.4f\t%.4f\t%.4f\t%.0f\t%.0f\r\n',A(i,1),A(i,2),A(i,3),A(i,4),A(i,5),A(i,6),A(i,7),A(i,8),A(i,9),A(i,10),A(i,11)); %Write data line
 end
