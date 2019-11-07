@@ -10,8 +10,10 @@ function exportCTF(ebsd,fName,varargin)
 %           "'params',cprStruct" - Structure with properties from cpr-file import
 %           "'params','manual'"  - String indicating prompt for manual
 %                                  import of microscopy parameters
-%           "'flip',[0|1]"       - Flag 0 or 1 for rotating ebsd spatial data
-%                                  (not the orientation data) 180° (default: 0)
+%           "'flipud',[0|1]"     - Flag 0 or 1 for flipping ebsd spatial
+%                                  upside down (default: 0)
+%           "'flipud',[0|1]"     - Flag 0 or 1 for flipping ebsd spatial
+%                                  left right (default: 0)
 % ************************************************************************
 % Dr. Frank Niessen, University of Wollongong, Australia, 2019
 % contactnospam@fniessen.com (remove the nospam to make this email address work)
